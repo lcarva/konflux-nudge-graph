@@ -9,7 +9,6 @@ them as an interactive graph you can explore in a browser.
 ## Prerequisites
 
 - [yq](https://github.com/mikefarah/yq) (v4+)
-- [jq](https://github.com/jqlang/jq)
 - `kubectl` or `oc` with access to the target namespace
 
 ## Fetching the data

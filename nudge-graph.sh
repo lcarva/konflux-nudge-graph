@@ -56,6 +56,15 @@ cat > "$OUTPUT" <<'HTMLEOF'
   }
   #search-results div:hover { background: #3a3a5e; }
   #search-results .match { color: #7fbbf0; font-weight: bold; }
+  #legend {
+    position: fixed; bottom: 12px; left: 12px; background: rgba(20,20,40,0.9);
+    padding: 10px 14px; border-radius: 8px; font-size: 12px;
+    border: 1px solid #333; display: flex; gap: 16px;
+  }
+  #legend .item { display: flex; align-items: center; gap: 5px; }
+  #legend .dot {
+    width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+  }
 </style>
 </head>
 <body>
@@ -63,6 +72,11 @@ cat > "$OUTPUT" <<'HTMLEOF'
 <div id="info">
   <h3 id="info-title">Component Nudge Graph</h3>
   <div id="info-body"><span class="hint">Click a node to highlight its connections.<br>Click background to reset.</span></div>
+</div>
+<div id="legend">
+  <span class="item"><span class="dot" style="background:#96e6a1"></span> Source</span>
+  <span class="item"><span class="dot" style="background:#ff8a80"></span> Sink</span>
+  <span class="item"><span class="dot" style="background:#a78bfa"></span> Relay</span>
 </div>
 <div id="search">
   <input id="search-input" type="text" placeholder="Search components..." autocomplete="off">
@@ -77,17 +91,22 @@ cat >> "$OUTPUT" <<'HTMLEOF'
 
 var nodeSet = {};
 var elements = [];
+var hasOutgoing = {};
+var hasIncoming = {};
 
 edgesData.forEach(function(e) {
-  if (!nodeSet[e.src]) {
-    nodeSet[e.src] = true;
-    elements.push({ data: { id: e.src } });
-  }
-  if (!nodeSet[e.dst]) {
-    nodeSet[e.dst] = true;
-    elements.push({ data: { id: e.dst } });
-  }
+  hasOutgoing[e.src] = true;
+  hasIncoming[e.dst] = true;
+  nodeSet[e.src] = true;
+  nodeSet[e.dst] = true;
   elements.push({ data: { id: e.src + '->' + e.dst, source: e.src, target: e.dst } });
+});
+
+Object.keys(nodeSet).forEach(function(id) {
+  var type = (hasOutgoing[id] && hasIncoming[id]) ? 'relay'
+           : hasOutgoing[id] ? 'source'
+           : 'sink';
+  elements.push({ data: { id: id, type: type } });
 });
 
 var cy = cytoscape({
@@ -112,6 +131,18 @@ var cy = cytoscape({
         'text-outline-color': '#1a1a2e',
         'min-zoomed-font-size': 8,
       }
+    },
+    {
+      selector: 'node[type="source"]',
+      style: { 'background-color': '#96e6a1' }
+    },
+    {
+      selector: 'node[type="sink"]',
+      style: { 'background-color': '#ff8a80' }
+    },
+    {
+      selector: 'node[type="relay"]',
+      style: { 'background-color': '#a78bfa' }
     },
     {
       selector: 'edge',
@@ -282,6 +313,6 @@ searchInput.addEventListener('keydown', function(e) {
 </html>
 HTMLEOF
 
-node_count=$(echo "$edges_json" | jq '[.[].src, .[].dst] | unique | length')
-edge_count=$(echo "$edges_json" | jq 'length')
+node_count=$(echo "$edges_json" | yq -p=json '[.[].src, .[].dst] | unique | length')
+edge_count=$(echo "$edges_json" | yq -p=json 'length')
 echo "Wrote $OUTPUT — $node_count nodes, $edge_count edges"
