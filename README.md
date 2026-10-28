@@ -13,11 +13,10 @@ them as an interactive graph you can explore in a browser.
 
 ## Fetching the data
 
-Export the Component and Application resources from your namespace:
+Export the Component resources from your namespace:
 
 ```bash
 kubectl get components -n <namespace> -o yaml > components.yaml
-kubectl get applications -n <namespace> -o yaml > applications.yaml
 ```
 
 ## Generating the graph
